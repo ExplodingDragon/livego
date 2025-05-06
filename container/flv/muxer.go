@@ -156,7 +156,7 @@ func (f *FlvDvr) GetWriter(info av.Info) av.WriteCloser {
 		return nil
 	}
 
-	flvDir := configure.Config.GetString("flv_dir")
+	flvDir := configure.Cfg.FLVDir
 
 	err := os.MkdirAll(path.Join(flvDir, paths[0]), 0755)
 	if err != nil {

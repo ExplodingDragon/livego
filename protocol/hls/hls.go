@@ -53,12 +53,7 @@ func (server *Server) Serve(listener net.Listener) error {
 		server.handle(w, r)
 	})
 	server.listener = listener
-
-	if configure.Config.GetBool("use_hls_https") {
-		http.ServeTLS(listener, mux, "server.crt", "server.key")
-	} else {
-		http.Serve(listener, mux)
-	}
+	http.Serve(listener, mux)
 
 	return nil
 }
@@ -90,7 +85,7 @@ func (server *Server) checkStop() {
 
 		server.conns.Range(func(key, val interface{}) bool {
 			v := val.(*Source)
-			if !v.Alive() && !configure.Config.GetBool("hls_keep_after_end") {
+			if !v.Alive() && !configure.Cfg.HLSKeepAfterEnd {
 				log.Debug("check stop and remove: ", v.Info())
 				server.conns.Delete(key)
 			}

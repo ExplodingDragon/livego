@@ -274,7 +274,7 @@ func (connClient *ConnClient) Start(url string, method string) error {
 	var conn net.Conn
 	if connClient.isRTMPS {
 		var config tls.Config
-		if configure.Config.GetBool("enable_tls_verify") {
+		if configure.Cfg.EnableTLSVerify {
 			roots, err := x509.SystemCertPool()
 			if err != nil {
 				log.Warning(err)

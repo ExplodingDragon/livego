@@ -8,11 +8,11 @@ import (
 )
 
 const (
-	maxTSCacheNum = 3
+	maxTSCacheNum = 60
 )
 
 var (
-	ErrNoKey = fmt.Errorf("No key for cache")
+	ErrNoKey = fmt.Errorf("no key for cache")
 )
 
 type TSCacheItem struct {
@@ -53,11 +53,11 @@ func (tcCacheItem *TSCacheItem) GenM3U8PlayList() ([]byte, error) {
 				getSeq = true
 				seq = v.SeqNum
 			}
-			fmt.Fprintf(m3u8body, "#EXTINF:%.3f,\n%s\n", float64(v.Duration)/float64(1000), v.Name)
+			_, _ = fmt.Fprintf(m3u8body, "#EXTINF:%.3f,\n%s\n", float64(v.Duration)/float64(1000), v.Name)
 		}
 	}
 	w := bytes.NewBuffer(nil)
-	fmt.Fprintf(w,
+	_, _ = fmt.Fprintf(w,
 		"#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-ALLOW-CACHE:NO\n#EXT-X-TARGETDURATION:%d\n#EXT-X-MEDIA-SEQUENCE:%d\n\n",
 		maxDuration/1000+1, seq)
 	w.Write(m3u8body.Bytes())

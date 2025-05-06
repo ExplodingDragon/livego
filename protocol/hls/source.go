@@ -181,7 +181,7 @@ func (source *Source) cleanup() {
 
 func (source *Source) Close(err error) {
 	log.Debug("hls source closed: ", source.info)
-	if !source.closed && !configure.Config.GetBool("hls_keep_after_end") {
+	if !source.closed && !configure.Cfg.HLSKeepAfterEnd {
 		source.cleanup()
 	}
 	source.closed = true
@@ -274,6 +274,6 @@ func (source *Source) tsMux(p *av.Packet) error {
 		return source.muxer.Mux(p, source.btswriter)
 	} else {
 		source.cache.Cache(p.Data, source.pts)
-		return source.muxAudio(cache_max_frames)
+		return source.muxAudio(cacheMaxFrames)
 	}
 }

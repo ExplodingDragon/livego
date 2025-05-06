@@ -34,12 +34,8 @@ func NewServer(h av.Handler) *Server {
 
 func (server *Server) Serve(l net.Listener) error {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		server.handleConn(w, r)
-	})
-	mux.HandleFunc("/streams", func(w http.ResponseWriter, r *http.Request) {
-		server.getStream(w, r)
-	})
+	mux.HandleFunc("/", server.handleConn)
+	mux.HandleFunc("/streams", server.getStream)
 	if err := http.Serve(l, mux); err != nil {
 		return err
 	}
@@ -47,7 +43,7 @@ func (server *Server) Serve(l net.Listener) error {
 }
 
 // 获取发布和播放器的信息
-func (server *Server) getStreams(w http.ResponseWriter, r *http.Request) *streams {
+func (server *Server) getStreams() *streams {
 	rtmpStream := server.handler.(*rtmp.RtmpStream)
 	if rtmpStream == nil {
 		return nil
@@ -83,7 +79,7 @@ func (server *Server) getStreams(w http.ResponseWriter, r *http.Request) *stream
 }
 
 func (server *Server) getStream(w http.ResponseWriter, r *http.Request) {
-	msgs := server.getStreams(w, r)
+	msgs := server.getStreams()
 	if msgs == nil {
 		return
 	}
@@ -107,7 +103,7 @@ func (server *Server) handleConn(w http.ResponseWriter, r *http.Request) {
 	}
 	path := strings.TrimSuffix(strings.TrimLeft(u, "/"), ".flv")
 	paths := strings.SplitN(path, "/", 2)
-	log.Debug("url:", u, "path:", path, "paths:", paths)
+	log.Info("url:", u, "path:", path, "paths:", paths)
 
 	if len(paths) != 2 {
 		http.Error(w, "invalid path", http.StatusBadRequest)
@@ -115,7 +111,7 @@ func (server *Server) handleConn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 判断视屏流是否发布,如果没有发布,直接返回404
-	msgs := server.getStreams(w, r)
+	msgs := server.getStreams()
 	if msgs == nil || len(msgs.Publishers) == 0 {
 		http.Error(w, "invalid path", http.StatusNotFound)
 		return

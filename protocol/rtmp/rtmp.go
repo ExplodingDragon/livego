@@ -24,8 +24,8 @@ const (
 )
 
 var (
-	readTimeout  = configure.Config.GetInt("read_timeout")
-	writeTimeout = configure.Config.GetInt("write_timeout")
+	readTimeout  = configure.Cfg.ReadTimeout
+	writeTimeout = configure.Cfg.WriteTimeout
 )
 
 type Client struct {
@@ -111,38 +111,42 @@ func (s *Server) handleConn(conn *core.Conn) error {
 		return err
 	}
 
-	appname, name, _ := connServer.GetInfo()
+	appname, key, _ := connServer.GetInfo()
 
-	if ret := configure.CheckAppName(appname); !ret {
-		err := fmt.Errorf("application name=%s is not configured", appname)
-		conn.Close()
-		log.Error("CheckAppName err: ", err)
-		return err
-	}
+	// todo , 检查 appname
+	//if ret := configure.CheckAppName(appname); !ret {
+	//	err := fmt.Errorf("application name=%s is not configured", appname)
+	//	conn.Close()
+	//	log.Error("CheckAppName err: ", err)
+	//	return err
+	//}
 
-	log.Debugf("handleConn: IsPublisher=%v", connServer.IsPublisher())
+	log.Infof("handleConn: IsPublisher=%v, appName=%s,key=%s", connServer.IsPublisher(), appname, key)
 	if connServer.IsPublisher() {
-		if configure.Config.GetBool("rtmp_noauth") {
-			key, err := configure.RoomKeys.GetKey(name)
-			if err != nil {
-				err := fmt.Errorf("Cannot create key err=%s", err.Error())
-				conn.Close()
-				log.Error("GetKey err: ", err)
-				return err
+		secret := ""
+		find := -1
+		for i, application := range configure.Cfg.ServerCfg {
+			if application.Appname == appname {
+				secret = application.Secret
+				find = i
+				break
 			}
-			name = key
 		}
-		channel, err := configure.RoomKeys.GetChannel(name)
-		if err != nil {
-			err := fmt.Errorf("invalid key err=%s", err.Error())
+		if find == -1 {
+			err := fmt.Errorf("invalid key ,%s", appname)
 			conn.Close()
 			log.Error("CheckKey err: ", err)
 			return err
 		}
-		connServer.PublishInfo.Name = channel
-		if pushlist, ret := configure.GetStaticPushUrlList(appname); ret && (pushlist != nil) {
-			log.Debugf("GetStaticPushUrlList: %v", pushlist)
+		if secret != "" && key != secret {
+			err := fmt.Errorf("invalid secret,%s", appname)
+			conn.Close()
+			log.Error("CheckKey err: ", err)
+			return err
 		}
+		connServer.PublishInfo.Name = "live"
+		log.Infof(" RTMP Push %s", appname)
+
 		reader := NewVirReader(connServer)
 		s.handler.HandleReader(reader)
 		log.Debugf("new publisher: %+v", reader.Info())
@@ -153,7 +157,7 @@ func (s *Server) handleConn(conn *core.Conn) error {
 			writer := s.getter.GetWriter(reader.Info())
 			s.handler.HandleWriter(writer)
 		}
-		if configure.Config.GetBool("flv_archive") {
+		if configure.Cfg.FLVArchive {
 			flvWriter := new(flv.FlvDvr)
 			s.handler.HandleWriter(flvWriter.GetWriter(reader.Info()))
 		}
@@ -283,7 +287,6 @@ func (v *VirWriter) DropPacket(pktQue chan *av.Packet, info av.Info) {
 	log.Debug("packet queue len: ", len(pktQue))
 }
 
-//
 func (v *VirWriter) Write(p *av.Packet) (err error) {
 	err = nil
 
