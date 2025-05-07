@@ -23,8 +23,8 @@ const (
 )
 
 var (
-	ErrNoPublisher         = fmt.Errorf("no publisher")
-	ErrInvalidReq          = fmt.Errorf("invalid req url path")
+	ErrNoPublisher = fmt.Errorf("no publisher")
+
 	ErrNoSupportVideoCodec = fmt.Errorf("no support video codec")
 	ErrNoSupportAudioCodec = fmt.Errorf("no support audio codec")
 )
