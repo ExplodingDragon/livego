@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
+	"github.com/gwuhaolin/livego/configure"
 	"sync"
 )
 
-const (
-	maxTSCacheNum = 60
+var (
+	maxTSCacheNum = configure.Cfg.MaxTsCacheNum
 )
 
 var (
@@ -53,7 +54,7 @@ func (tcCacheItem *TSCacheItem) GenM3U8PlayList() ([]byte, error) {
 				getSeq = true
 				seq = v.SeqNum
 			}
-			_, _ = fmt.Fprintf(m3u8body, "#EXTINF:%.3f,\n%s\n", float64(v.Duration)/float64(1000), v.Name)
+			_, _ = fmt.Fprintf(m3u8body, "#EXTINF:%.3f,\n/hls%s\n", float64(v.Duration)/float64(1000), v.Name)
 		}
 	}
 	w := bytes.NewBuffer(nil)

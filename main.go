@@ -1,139 +1,96 @@
 package main
 
 import (
-	"flag"
-	"fmt"
-	"net"
-	"path"
-	"runtime"
-	"time"
-
+	_ "embed"
+	"errors"
 	"github.com/gwuhaolin/livego/configure"
 	"github.com/gwuhaolin/livego/protocol/hls"
 	"github.com/gwuhaolin/livego/protocol/httpflv"
 	"github.com/gwuhaolin/livego/protocol/rtmp"
-
 	log "github.com/sirupsen/logrus"
+	"maps"
+	"net"
+	"net/http"
+	"slices"
+	"text/template"
 )
 
-var ConfigPath = "./livego.yaml"
+var (
+	//go:embed hls.min.js
+	hlsJS []byte
+	//go:embed index.html.tmpl
+	index []byte
+)
+var parse, err = template.New("index").Parse(string(index))
 
 func init() {
-	flag.StringVar(&ConfigPath, "conf", ConfigPath, "config path")
-}
-
-type Server struct {
-	Config *configure.ServerCfg
-}
-
-func NewServer(cfg string) (*Server, error) {
-	config, err := configure.ParseConfig(cfg)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return &Server{config}, nil
-
 }
-
-func (s *Server) startHls() *hls.Server {
-	hlsListen, err := net.Listen("tcp", s.Config.HLSAddr)
-	if err != nil {
-		log.Fatal(err)
-	}
-	hlsServer := hls.NewServer()
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Error("HLS server panic: ", r)
-			}
-		}()
-		log.Info("HLS listen On ", s.Config.HLSAddr)
-		hlsServer.Serve(hlsListen)
-	}()
-	return hlsServer
-}
-
-func (s *Server) startRtmp(stream *rtmp.RtmpStream, hlsServer *hls.Server) {
-	rtmpListen, err := net.Listen("tcp", s.Config.RTMPAddr)
+func startRtmp(stream *rtmp.RtmpStream, hlsServer *hls.Server) {
+	rtmpListen, err := net.Listen("tcp", configure.Cfg.RTMPAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	var rtmpServer *rtmp.Server
 
-	if hlsServer == nil {
-		rtmpServer = rtmp.NewRtmpServer(stream, nil)
-		log.Info("HLS server disable....")
-	} else {
-		rtmpServer = rtmp.NewRtmpServer(stream, hlsServer)
-		log.Info("HLS server enable....")
-	}
-
+	rtmpServer = rtmp.NewRtmpServer(stream, hlsServer)
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error("RTMP server panic: ", r)
 		}
 	}()
-	log.Info("RTMP Listen On ", s.Config.RTMPAddr)
+	log.Info("RTMP Listen On ", configure.Cfg.RTMPAddr)
 	rtmpServer.Serve(rtmpListen)
 }
 
-func (s *Server) startHTTPFlv(stream *rtmp.RtmpStream) {
+func startWeb(hFlv *httpflv.Server, hls *hls.Server) error {
+	web, err := net.Listen("tcp", configure.Cfg.WebAddr)
+	log.Info("Web Listen On ", configure.Cfg.WebAddr)
 
-	flvListen, err := net.Listen("tcp", s.Config.HTTPFLVAddr)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/flv/", hFlv.HandleConn)
+	if configure.Cfg.HFlvInfo {
+		mux.HandleFunc("/flv/streams", hFlv.GetStream)
+	}
+	mux.HandleFunc("/hls/", hls.Handle)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/js/hls.min.js" {
+			w.Header().Set("Content-Type", "application/javascript")
+			_, _ = w.Write(hlsJS)
+			return
+		}
 
-	hdlServer := httpflv.NewServer(stream)
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Error("HTTP-FLV server panic: ", r)
-			}
-		}()
-		log.Info("HTTP-FLV listen On ", s.Config.HTTPFLVAddr)
-		hdlServer.Serve(flvListen)
-	}()
-}
-
-func init() {
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp: true,
-		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-			filename := path.Base(f.File)
-			return fmt.Sprintf("%s()", f.Function), fmt.Sprintf(" %s:%d", filename, f.Line)
-		},
+		if r.URL.Path == "/" {
+			w.Header().Set("Content-Type", "text/html")
+			parse.Execute(w, map[string]interface{}{
+				"rooms": configure.Cfg.Pusher,
+			})
+		}
 	})
+
+	go func() {
+		err = http.Serve(web, mux)
+		if err != nil && !errors.Is(http.ErrServerClosed, err) {
+			log.Error("Web server panic: ", err)
+		}
+	}()
+	return nil
 }
 
 func main() {
+	stream := rtmp.NewRtmpStream()
 
-	flag.Parse()
-	defer func() {
-		if r := recover(); r != nil {
-			log.Error("livego panic: ", r)
-			time.Sleep(1 * time.Second)
-		}
-	}()
-	server, err := NewServer(ConfigPath)
-	if err != nil {
+	log.Infof("Find Pusher: %s", slices.Sorted(maps.Keys(configure.Cfg.Pusher)))
+	hdlServer := httpflv.NewServer(stream)
+	hlsServer := hls.NewServer()
+	if err := startWeb(hdlServer, hlsServer); err != nil {
 		log.Fatal(err)
 	}
-
-	configure.Cfg = server.Config
-
-	for _, app := range server.Config.ServerCfg {
-		stream := rtmp.NewRtmpStream()
-		var hlsServer *hls.Server
-		if app.Hls {
-			hlsServer = server.startHls()
-		}
-		if app.Flv {
-			server.startHTTPFlv(stream)
-		}
-		if app.Secret != "" {
-		}
-		server.startRtmp(stream, hlsServer)
-	}
+	startRtmp(stream, hlsServer)
 }

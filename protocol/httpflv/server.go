@@ -2,7 +2,7 @@ package httpflv
 
 import (
 	"encoding/json"
-	"net"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -30,16 +30,6 @@ func NewServer(h av.Handler) *Server {
 	return &Server{
 		handler: h,
 	}
-}
-
-func (server *Server) Serve(l net.Listener) error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", server.handleConn)
-	mux.HandleFunc("/streams", server.getStream)
-	if err := http.Serve(l, mux); err != nil {
-		return err
-	}
-	return nil
 }
 
 // 获取发布和播放器的信息
@@ -78,7 +68,15 @@ func (server *Server) getStreams() *streams {
 	return msgs
 }
 
-func (server *Server) getStream(w http.ResponseWriter, r *http.Request) {
+func (server *Server) Rooms() map[string]string {
+	result := make(map[string]string)
+	for _, publisher := range server.getStreams().Publishers {
+		result[strings.TrimSuffix(publisher.Key, "/live")] = publisher.Id
+	}
+	return result
+}
+
+func (server *Server) GetStream(w http.ResponseWriter, r *http.Request) {
 	msgs := server.getStreams()
 	if msgs == nil {
 		return
@@ -88,32 +86,33 @@ func (server *Server) getStream(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-func (server *Server) handleConn(w http.ResponseWriter, r *http.Request) {
+func (server *Server) HandleConn(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("http flv handleConn panic: ", r)
+			log.Error("http flv HandleConn panic: ", r)
 		}
 	}()
 
 	url := r.URL.String()
 	u := r.URL.Path
+	errMsg := fmt.Sprintf("invalid path: %s", u)
 	if pos := strings.LastIndex(u, "."); pos < 0 || u[pos:] != ".flv" {
-		http.Error(w, "invalid path", http.StatusBadRequest)
+		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
-	path := strings.TrimSuffix(strings.TrimLeft(u, "/"), ".flv")
+	path := strings.TrimSuffix(strings.TrimPrefix(u, "/flv/"), ".flv")
 	paths := strings.SplitN(path, "/", 2)
 	log.Info("url:", u, "path:", path, "paths:", paths)
 
 	if len(paths) != 2 {
-		http.Error(w, "invalid path", http.StatusBadRequest)
+		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 
 	// 判断视屏流是否发布,如果没有发布,直接返回404
 	msgs := server.getStreams()
 	if msgs == nil || len(msgs.Publishers) == 0 {
-		http.Error(w, "invalid path", http.StatusNotFound)
+		http.Error(w, errMsg, http.StatusNotFound)
 		return
 	} else {
 		include := false
@@ -124,7 +123,7 @@ func (server *Server) handleConn(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if include == false {
-			http.Error(w, "invalid path", http.StatusNotFound)
+			http.Error(w, errMsg, http.StatusNotFound)
 			return
 		}
 	}

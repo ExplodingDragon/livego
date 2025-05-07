@@ -1,75 +1,66 @@
 package configure
 
 import (
+	"flag"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert/yaml"
 	"os"
+	"time"
 )
 
-type Application struct {
-	Appname string `yaml:"appname"`
-	Live    bool   `yaml:"live"`
-	Hls     bool   `yaml:"hls"`
-	Flv     bool   `yaml:"flv"`
-	Secret  string `yaml:"secret"`
-}
-
-type Applications []Application
-
 type ServerCfg struct {
-	Level           string `yaml:"level,omitempty"`
-	FLVArchive      bool   `yaml:"flv_archive,omitempty"`
-	FLVDir          string `yaml:"flv_dir,omitempty"`
-	RTMPAddr        string `yaml:"rtmp_addr,omitempty"`
-	HTTPFLVAddr     string `yaml:"httpflv_addr,omitempty"`
-	HLSAddr         string `yaml:"hls_addr,omitempty"`
-	HLSKeepAfterEnd bool   `yaml:"hls_keep_after_end,omitempty"`
-	APIAddr         string `yaml:"api_addr,omitempty"`
-	ReadTimeout     int    `yaml:"read_timeout,omitempty"`
-	WriteTimeout    int    `yaml:"write_timeout,omitempty"`
-	EnableTLSVerify bool   `yaml:"enable_tls_verify,omitempty"`
-	GopNum          int    `yaml:"gop_num,omitempty"`
+	Level string `yaml:"level,omitempty"`
 
-	ServerCfg Applications `yaml:"server"`
+	RTMPAddr string `yaml:"rtmp,omitempty"`
+	WebAddr  string `yaml:"web,omitempty"`
+
+	HLSKeepAfterEnd bool          `yaml:"hls_keep_after_end,omitempty"`
+	HLSKeepTsCache  time.Duration `yaml:"hls_keep_ts_cache,omitempty"`
+
+	WriteTimeout    int  `yaml:"write_timeout,omitempty"`
+	EnableTLSVerify bool `yaml:"enable_tls_verify,omitempty"`
+	GopNum          int  `yaml:"gop_num,omitempty"`
+
+	HFlvInfo bool `yaml:"flv_info,omitempty"`
+
+	Pusher        map[string]string `yaml:"pusher,omitempty"`
+	MaxTsCacheNum int               `yaml:"hls_history,omitempty"`
 }
 
 var Cfg = &ServerCfg{
-	FLVArchive:      false,
 	RTMPAddr:        ":1935",
-	HTTPFLVAddr:     ":7001",
-	HLSAddr:         ":7002",
+	WebAddr:         ":7001",
 	HLSKeepAfterEnd: false,
-	APIAddr:         ":8090",
+	HLSKeepTsCache:  1 * time.Minute,
 	WriteTimeout:    10,
-	ReadTimeout:     10,
 	EnableTLSVerify: true,
+	HFlvInfo:        false,
 	GopNum:          1,
-	ServerCfg:       make(Applications, 0)}
+	MaxTsCacheNum:   60,
+	Pusher:          make(map[string]string)}
 
-func ParseConfig(path string) (*ServerCfg, error) {
-	result := &ServerCfg{
-		FLVArchive:      false,
-		RTMPAddr:        ":1935",
-		HTTPFLVAddr:     ":7001",
-		HLSAddr:         ":7002",
-		HLSKeepAfterEnd: false,
-		APIAddr:         ":8090",
-		WriteTimeout:    10,
-		ReadTimeout:     10,
-		EnableTLSVerify: true,
-		GopNum:          1,
-		ServerCfg:       make(Applications, 0)}
+var conf = flag.String("conf", "livego.yaml", "config path")
+
+func init() {
+	flag.Parse()
+	if err := InitConfig(*conf); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func InitConfig(path string) error {
+
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if err := yaml.Unmarshal(data, result); err != nil {
-		return nil, err
+	if err := yaml.Unmarshal(data, Cfg); err != nil {
+		return err
 	}
-	if l, err := log.ParseLevel(result.Level); err == nil {
+	if l, err := log.ParseLevel(Cfg.Level); err == nil {
 		log.SetLevel(l)
 		log.SetReportCaller(l == log.DebugLevel)
 	}
-	return result, nil
+	return nil
 
 }

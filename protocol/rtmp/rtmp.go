@@ -24,20 +24,12 @@ const (
 )
 
 var (
-	readTimeout  = configure.Cfg.ReadTimeout
 	writeTimeout = configure.Cfg.WriteTimeout
 )
 
 type Client struct {
 	handler av.Handler
 	getter  av.GetWriter
-}
-
-func NewRtmpClient(h av.Handler, getter av.GetWriter) *Client {
-	return &Client{
-		handler: h,
-		getter:  getter,
-	}
 }
 
 func (c *Client) Dial(url string, method string) error {
@@ -123,43 +115,31 @@ func (s *Server) handleConn(conn *core.Conn) error {
 
 	log.Infof("handleConn: IsPublisher=%v, appName=%s,key=%s", connServer.IsPublisher(), appname, key)
 	if connServer.IsPublisher() {
-		secret := ""
-		find := -1
-		for i, application := range configure.Cfg.ServerCfg {
-			if application.Appname == appname {
-				secret = application.Secret
-				find = i
-				break
+		if secret, ok := configure.Cfg.Pusher[appname]; ok {
+			if secret != "" && key != secret {
+				err := fmt.Errorf("invalid secret,%s", appname)
+				conn.Close()
+				log.Error("CheckKey err: ", err)
+				return err
 			}
-		}
-		if find == -1 {
+		} else {
 			err := fmt.Errorf("invalid key ,%s", appname)
 			conn.Close()
 			log.Error("CheckKey err: ", err)
 			return err
 		}
-		if secret != "" && key != secret {
-			err := fmt.Errorf("invalid secret,%s", appname)
-			conn.Close()
-			log.Error("CheckKey err: ", err)
-			return err
-		}
 		connServer.PublishInfo.Name = "live"
-		log.Infof(" RTMP Push %s", appname)
+		log.Infof(" RTMP Push Room:%s", appname)
 
 		reader := NewVirReader(connServer)
 		s.handler.HandleReader(reader)
-		log.Debugf("new publisher: %+v", reader.Info())
+		log.Infof("Publisher: %v", reader.Info())
 
 		if s.getter != nil {
 			writeType := reflect.TypeOf(s.getter)
 			log.Debugf("handleConn:writeType=%v", writeType)
 			writer := s.getter.GetWriter(reader.Info())
 			s.handler.HandleWriter(writer)
-		}
-		if configure.Cfg.FLVArchive {
-			flvWriter := new(flv.FlvDvr)
-			s.handler.HandleWriter(flvWriter.GetWriter(reader.Info()))
 		}
 	} else {
 		writer := NewVirWriter(connServer)

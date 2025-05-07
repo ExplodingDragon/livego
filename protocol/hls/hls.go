@@ -1,6 +1,7 @@
 package hls
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 	"net/http"
@@ -47,17 +48,6 @@ func NewServer() *Server {
 	return ret
 }
 
-func (server *Server) Serve(listener net.Listener) error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		server.handle(w, r)
-	})
-	server.listener = listener
-	http.Serve(listener, mux)
-
-	return nil
-}
-
 func (server *Server) GetWriter(info av.Info) av.WriteCloser {
 	var s *Source
 	v, ok := server.conns.Load(info.Key)
@@ -94,15 +84,16 @@ func (server *Server) checkStop() {
 	}
 }
 
-func (server *Server) handle(w http.ResponseWriter, r *http.Request) {
-	if path.Base(r.URL.Path) == "crossdomain.xml" {
+func (server *Server) Handle(w http.ResponseWriter, r *http.Request) {
+	hlsPath := strings.TrimPrefix(r.URL.Path, "/hls")
+	if path.Base(hlsPath) == "crossdomain.xml" {
 		w.Header().Set("Content-Type", "application/xml")
 		w.Write(crossdomainxml)
 		return
 	}
-	switch path.Ext(r.URL.Path) {
+	switch path.Ext(hlsPath) {
 	case ".m3u8":
-		key, _ := server.parseM3u8(r.URL.Path)
+		key, _ := server.parseM3u8(hlsPath)
 		conn := server.getConn(key)
 		if conn == nil {
 			http.Error(w, ErrNoPublisher.Error(), http.StatusForbidden)
@@ -121,28 +112,32 @@ func (server *Server) handle(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
 		w.Header().Set("Content-Type", "application/x-mpegURL")
 		w.Header().Set("Content-Length", strconv.Itoa(len(body)))
-		w.Write(body)
+		_, _ = w.Write(body)
 	case ".ts":
-		key, _ := server.parseTs(r.URL.Path)
+		key, _ := server.parseTs(hlsPath)
 		conn := server.getConn(key)
 		if conn == nil {
 			http.Error(w, ErrNoPublisher.Error(), http.StatusForbidden)
 			return
 		}
 		tsCache := conn.GetCacheInc()
-		item, err := tsCache.GetItem(r.URL.Path)
+		item, err := tsCache.GetItem(hlsPath)
 		if err != nil {
 			log.Debug("GetItem error: ", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", int(configure.Cfg.HLSKeepTsCache.Seconds())))
+		w.Header().Set("Expires", time.Now().UTC().Add(configure.Cfg.HLSKeepTsCache).Format(http.TimeFormat))
+
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "video/mp2ts")
-		w.Header().Set("Content-Length", strconv.Itoa(len(item.Data)))
-		w.Write(item.Data)
+		http.ServeContent(w, r, "", item.Create, bytes.NewReader(item.Data))
 	}
 }
 
