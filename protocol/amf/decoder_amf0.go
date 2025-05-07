@@ -104,7 +104,7 @@ func (d *Decoder) DecodeAmf0String(r io.Reader, decodeMarker bool) (result strin
 		return "", fmt.Errorf("decode amf0: unable to decode string length: %s", err)
 	}
 
-	var bytes = make([]byte, length)
+	bytes := make([]byte, length)
 	if bytes, err = ReadBytes(r, int(length)); err != nil {
 		return "", fmt.Errorf("decode amf0: unable to decode string value: %s", err)
 	}
@@ -147,7 +147,6 @@ func (d *Decoder) DecodeAmf0Object(r io.Reader, decodeMarker bool) (Object, erro
 	}
 
 	return result, nil
-
 }
 
 // marker: 1 byte 0x05
@@ -244,6 +243,7 @@ func (d *Decoder) DecodeAmf0StrictArray(r io.Reader, decodeMarker bool) (result 
 // format:
 // - normal number format:
 //   - 8 byte big endian float64
+//
 // - 2 byte unused
 func (d *Decoder) DecodeAmf0Date(r io.Reader, decodeMarker bool) (result float64, err error) {
 	if err = AssertMarker(r, decodeMarker, AMF0_DATE_MARKER); err != nil {
@@ -276,7 +276,7 @@ func (d *Decoder) DecodeAmf0LongString(r io.Reader, decodeMarker bool) (result s
 		return "", fmt.Errorf("decode amf0: unable to decode long string length: %s", err)
 	}
 
-	var bytes = make([]byte, length)
+	bytes := make([]byte, length)
 	if bytes, err = ReadBytes(r, int(length)); err != nil {
 		return "", fmt.Errorf("decode amf0: unable to decode long string value: %s", err)
 	}
@@ -309,6 +309,7 @@ func (d *Decoder) DecodeAmf0XmlDocument(r io.Reader, decodeMarker bool) (result 
 // - normal string format:
 //   - 2 byte big endian uint16 header to determine size
 //   - n (size) byte utf8 string
+//
 // - normal object format:
 //   - loop encoded string followed by encoded value
 //   - terminated with empty string followed by 1 byte 0x09

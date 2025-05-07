@@ -28,9 +28,7 @@ var (
 	onBWDone       = "onBWDone"
 )
 
-var (
-	ErrFail = fmt.Errorf("response err")
-)
+var ErrFail = fmt.Errorf("response err")
 
 type ConnClient struct {
 	done       bool
@@ -187,7 +185,6 @@ func (connClient *ConnClient) writeCreateStreamMsg() error {
 			return err
 		}
 	}
-
 }
 
 func (connClient *ConnClient) writePublishMsg() error {

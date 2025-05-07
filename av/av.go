@@ -69,8 +69,7 @@ type Packet struct {
 	Data       []byte
 }
 
-type PacketHeader interface {
-}
+type PacketHeader interface{}
 
 type AudioPacketHeader interface {
 	PacketHeader

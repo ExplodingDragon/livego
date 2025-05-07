@@ -3,8 +3,9 @@ package hls
 import (
 	"bytes"
 	"fmt"
-	"github.com/gwuhaolin/livego/configure"
 	"time"
+
+	"github.com/gwuhaolin/livego/configure"
 
 	"github.com/gwuhaolin/livego/av"
 	"github.com/gwuhaolin/livego/container/flv"
@@ -254,6 +255,7 @@ func (source *Source) calcPtsDts(isVideo bool, ts, compositionTs uint32) {
 		source.pts = source.dts
 	}
 }
+
 func (source *Source) flushAudio() error {
 	return source.muxAudio(1)
 }

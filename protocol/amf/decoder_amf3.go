@@ -112,8 +112,8 @@ func (d *Decoder) DecodeAmf3Double(r io.Reader, decodeMarker bool) (result float
 
 // marker: 1 byte 0x06
 // format:
-// - u29 reference int. if reference, no more data. if not reference,
-//   length value of bytes to read to complete string.
+//   - u29 reference int. if reference, no more data. if not reference,
+//     length value of bytes to read to complete string.
 func (d *Decoder) DecodeAmf3String(r io.Reader, decodeMarker bool) (result string, err error) {
 	if err = AssertMarker(r, decodeMarker, AMF3_STRING_MARKER); err != nil {
 		return
@@ -375,8 +375,8 @@ func (d *Decoder) DecodeAmf3Object(r io.Reader, decodeMarker bool) (result inter
 
 // marker: 1 byte 0x07 or 0x0b
 // format:
-// - u29 reference int. if reference, no more data. if not reference,
-//   length value of bytes to read to complete string.
+//   - u29 reference int. if reference, no more data. if not reference,
+//     length value of bytes to read to complete string.
 func (d *Decoder) DecodeAmf3Xml(r io.Reader, decodeMarker bool) (result string, err error) {
 	if decodeMarker {
 		var marker byte
@@ -425,8 +425,8 @@ func (d *Decoder) DecodeAmf3Xml(r io.Reader, decodeMarker bool) (result string, 
 
 // marker: 1 byte 0x0c
 // format:
-// - u29 reference int. if reference, no more data. if not reference,
-//   length value of bytes to read.
+//   - u29 reference int. if reference, no more data. if not reference,
+//     length value of bytes to read.
 func (d *Decoder) DecodeAmf3ByteArray(r io.Reader, decodeMarker bool) (result []byte, err error) {
 	if err = AssertMarker(r, decodeMarker, AMF3_BYTEARRAY_MARKER); err != nil {
 		return

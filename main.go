@@ -3,16 +3,17 @@ package main
 import (
 	_ "embed"
 	"errors"
-	"github.com/gwuhaolin/livego/configure"
-	"github.com/gwuhaolin/livego/protocol/hls"
-	"github.com/gwuhaolin/livego/protocol/httpflv"
-	"github.com/gwuhaolin/livego/protocol/rtmp"
-	log "github.com/sirupsen/logrus"
 	"maps"
 	"net"
 	"net/http"
 	"slices"
 	"text/template"
+
+	"github.com/gwuhaolin/livego/configure"
+	"github.com/gwuhaolin/livego/protocol/hls"
+	"github.com/gwuhaolin/livego/protocol/httpflv"
+	"github.com/gwuhaolin/livego/protocol/rtmp"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -28,6 +29,7 @@ func init() {
 		panic(err)
 	}
 }
+
 func startRtmp(stream *rtmp.RtmpStream, hlsServer *hls.Server) {
 	rtmpListen, err := net.Listen("tcp", configure.Cfg.RTMPAddr)
 	if err != nil {

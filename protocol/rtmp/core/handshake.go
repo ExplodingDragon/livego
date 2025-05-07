@@ -7,15 +7,12 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-
 	"time"
 
 	"github.com/gwuhaolin/livego/utils/pio"
 )
 
-var (
-	timeout = 5 * time.Second
-)
+var timeout = 5 * time.Second
 
 var (
 	hsClientFullKey = []byte{

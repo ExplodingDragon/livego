@@ -10,12 +10,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var (
-	EmptyID = ""
-)
+var EmptyID = ""
 
 type RtmpStream struct {
-	streams *sync.Map //key
+	streams *sync.Map // key
 }
 
 func NewRtmpStream() *RtmpStream {
@@ -168,7 +166,7 @@ func (s *Stream) TransStart() {
 		s.ws.Range(func(key, val interface{}) bool {
 			v := val.(*PackWriterCloser)
 			if !v.init {
-				//log.Debugf("cache.send: %v", v.w.Info())
+				// log.Debugf("cache.send: %v", v.w.Info())
 				if err = s.cache.Send(v.w); err != nil {
 					log.Debugf("[%s] send cache packet error: %v, remove", v.w.Info(), err)
 					s.ws.Delete(key)
@@ -177,8 +175,8 @@ func (s *Stream) TransStart() {
 				v.init = true
 			} else {
 				newPacket := p
-				//writeType := reflect.TypeOf(v.w)
-				//log.Debugf("w.Write: type=%v, %v", writeType, v.w.Info())
+				// writeType := reflect.TypeOf(v.w)
+				// log.Debugf("w.Write: type=%v, %v", writeType, v.w.Info())
 				if err = v.w.Write(&newPacket); err != nil {
 					log.Debugf("[%s] write packet error: %v, remove", v.w.Info(), err)
 					s.ws.Delete(key)
@@ -211,7 +209,7 @@ func (s *Stream) CheckAlive() (n int) {
 	s.ws.Range(func(key, val interface{}) bool {
 		v := val.(*PackWriterCloser)
 		if v.w != nil {
-			//Alive from RWBaser, check last frame now - timestamp, if > timeout then Remove it
+			// Alive from RWBaser, check last frame now - timestamp, if > timeout then Remove it
 			if !v.w.Alive() {
 				log.Infof("write timeout remove")
 				s.ws.Delete(key)
@@ -227,7 +225,6 @@ func (s *Stream) CheckAlive() (n int) {
 }
 
 func (s *Stream) closeInter() {
-
 	s.ws.Range(func(key, val interface{}) bool {
 		v := val.(*PackWriterCloser)
 		if v.w != nil {

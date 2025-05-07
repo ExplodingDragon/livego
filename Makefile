@@ -34,3 +34,7 @@ build-linux:
 dockerize:
 	docker build -t $(DOCKER_ACC)/$(DOCKER_REPO):$(TAG) .
 	docker push $(DOCKER_ACC)/$(DOCKER_REPO):$(TAG)
+
+fmt:
+	@(test -f "$(GOPATH)/bin/gofumpt" || go install golang.org/x/tools/cmd/goimports@latest) && \
+	"$(GOPATH)/bin/gofumpt" -l -w . && go mod tidy

@@ -4,17 +4,14 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
-	"github.com/gwuhaolin/livego/configure"
 	"sync"
+
+	"github.com/gwuhaolin/livego/configure"
 )
 
-var (
-	maxTSCacheNum = configure.Cfg.MaxTsCacheNum
-)
+var maxTSCacheNum = configure.Cfg.MaxTsCacheNum
 
-var (
-	ErrNoKey = fmt.Errorf("no key for cache")
-)
+var ErrNoKey = fmt.Errorf("no key for cache")
 
 type TSCacheItem struct {
 	id   string

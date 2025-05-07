@@ -2,10 +2,11 @@ package configure
 
 import (
 	"flag"
-	log "github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert/yaml"
 	"os"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert/yaml"
 )
 
 type ServerCfg struct {
@@ -37,7 +38,8 @@ var Cfg = &ServerCfg{
 	HFlvInfo:        false,
 	GopNum:          1,
 	MaxTsCacheNum:   60,
-	Pusher:          make(map[string]string)}
+	Pusher:          make(map[string]string),
+}
 
 var conf = flag.String("conf", "livego.yaml", "config path")
 
@@ -49,7 +51,6 @@ func init() {
 }
 
 func InitConfig(path string) error {
-
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -62,5 +63,4 @@ func InitConfig(path string) error {
 		log.SetReportCaller(l == log.DebugLevel)
 	}
 	return nil
-
 }
