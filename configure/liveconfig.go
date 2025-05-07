@@ -2,35 +2,37 @@ package configure
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
+	"gopkg.in/yaml.v3"
+
 	log "github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert/yaml"
 )
 
 type ServerCfg struct {
 	Level string `yaml:"level,omitempty"`
 
-	RTMPAddr string `yaml:"rtmp,omitempty"`
-	WebAddr  string `yaml:"web,omitempty"`
+	WebAddr string `yaml:"web_addr,omitempty"`
 
 	HLSKeepAfterEnd bool          `yaml:"hls_keep_after_end,omitempty"`
 	HLSKeepTsCache  time.Duration `yaml:"hls_keep_ts_cache,omitempty"`
+	WriteTimeout    int           `yaml:"rtmp_write_timeout,omitempty"`
+	MaxTsCacheNum   int           `yaml:"hls_history_count,omitempty"`
 
-	WriteTimeout    int  `yaml:"write_timeout,omitempty"`
-	EnableTLSVerify bool `yaml:"enable_tls_verify,omitempty"`
-	GopNum          int  `yaml:"gop_num,omitempty"`
+	RTMPAddr        string `yaml:"rtmp_addr,omitempty"`
+	EnableTLSVerify bool   `yaml:"rtmp_enable_tls_verify,omitempty"`
+	GopNum          int    `yaml:"rtmp_gop_num,omitempty"`
 
-	HFlvInfo bool `yaml:"flv_info,omitempty"`
+	HFlvInfo bool `yaml:"flv_api_info,omitempty"`
 
-	Pusher        map[string]string `yaml:"pusher,omitempty"`
-	MaxTsCacheNum int               `yaml:"hls_history,omitempty"`
+	Pusher map[string]string `yaml:"pusher,omitempty"`
 }
 
 var Cfg = &ServerCfg{
-	RTMPAddr:        ":1935",
-	WebAddr:         ":7001",
+	RTMPAddr:        "0.0.0.0:1935",
+	WebAddr:         "127.0.0.1:7001",
 	HLSKeepAfterEnd: false,
 	HLSKeepTsCache:  1 * time.Minute,
 	WriteTimeout:    10,
@@ -41,10 +43,25 @@ var Cfg = &ServerCfg{
 	Pusher:          make(map[string]string),
 }
 
-var conf = flag.String("conf", "livego.yaml", "config path")
+var (
+	conf     = flag.String("conf", "livego.yaml", "config path")
+	generate = flag.Bool("generate", false, "generate config file")
+)
 
 func init() {
 	flag.Parse()
+	if *generate {
+		Cfg.Pusher["example"] = "Ciallo～(∠・ω< )⌒☆ "
+		out, _ := yaml.Marshal(Cfg)
+		if conf != nil && *conf != "livego.yaml" {
+			if err := os.WriteFile(*conf, out, 0o600); err != nil {
+				panic(err)
+			}
+		} else {
+			fmt.Println(string(out))
+		}
+		os.Exit(0)
+	}
 	if err := InitConfig(*conf); err != nil {
 		log.Fatal(err)
 	}
