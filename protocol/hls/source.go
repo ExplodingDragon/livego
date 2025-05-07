@@ -2,6 +2,7 @@ package hls
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"time"
 
@@ -18,7 +19,7 @@ import (
 const (
 	videoHZ      = 90000
 	aacSampleLen = 1024
-	maxQueueNum  = 512
+	maxQueueNum  = 4096
 
 	h264_default_hz uint64 = 90
 )
@@ -141,7 +142,7 @@ func (source *Source) SendPacket() error {
 			}
 
 			err := source.demuxer.Demux(p)
-			if err == flv.ErrAvcEndSEQ {
+			if errors.Is(err, flv.ErrAvcEndSEQ) {
 				log.Warning(err)
 				continue
 			} else {

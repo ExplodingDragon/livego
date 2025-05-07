@@ -76,7 +76,7 @@ func (server *Server) Rooms() map[string]string {
 	return result
 }
 
-func (server *Server) GetStream(w http.ResponseWriter, r *http.Request) {
+func (server *Server) GetStream(w http.ResponseWriter, _ *http.Request) {
 	msgs := server.getStreams()
 	if msgs == nil {
 		return

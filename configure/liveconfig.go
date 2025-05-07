@@ -39,7 +39,7 @@ var Cfg = &ServerCfg{
 	EnableTLSVerify: true,
 	HFlvInfo:        false,
 	GopNum:          1,
-	MaxTsCacheNum:   60,
+	MaxTsCacheNum:   3,
 	Pusher:          make(map[string]string),
 }
 

@@ -15,7 +15,7 @@ default: all
 
 all: test build dockerize
 build:
-	$(GOBUILD) -o $(BINARY_NAME) -v -ldflags="-X main.VERSION=$(TAG)"
+	$(GOBUILD) -o $(BINARY_NAME) -v -ldflags="-s -w -X main.VERSION=$(TAG)"
 
 test:
 	$(GOTEST) -v ./...
