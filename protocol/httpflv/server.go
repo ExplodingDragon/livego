@@ -102,7 +102,7 @@ func (server *Server) HandleConn(w http.ResponseWriter, r *http.Request) {
 	}
 	path := strings.TrimSuffix(strings.TrimPrefix(u, "/flv/"), ".flv")
 	paths := strings.SplitN(path, "/", 2)
-	log.Info("url:", u, "path:", path, "paths:", paths)
+	log.Info("New Client", "url:", u, "path:", path, "paths:", paths)
 
 	if len(paths) != 2 {
 		http.Error(w, errMsg, http.StatusBadRequest)
